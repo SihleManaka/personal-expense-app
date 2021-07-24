@@ -2,10 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:personal_expenses_app/widgets/chart.dart';
 import 'package:personal_expenses_app/widgets/new_transaction.dart';
 import 'package:personal_expenses_app/widgets/transaction_list.dart';
-
+import 'package:flutter/services.dart';
 import 'models/transaction.dart';
 
-void main() => runApp(MyApp());
+void main(){
+  WidgetsFlutterBinding.ensureInitialized();
+  /*SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  DeviceOrientation.portraitDown
+  ]);*/
+  runApp(MyApp());
+}
 
 class MyApp extends StatelessWidget {
   @override
@@ -58,6 +65,8 @@ class _MyHomePageState extends State<MyHomePage> {
     //     transactionDate: DateTime.now())
   ];
 
+  bool _showChart = false;
+
   List<Transaction> get _recentTransactions {
     return _userTransactions.where((element) {
       return element.transactionDate.isAfter(
@@ -98,23 +107,57 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+
+    final mediaQuery = MediaQuery.of(context);
+    final isLandscape= mediaQuery.orientation == Orientation.landscape;
+    final appBar = AppBar(
+      title: Text('Personal expanses'),
+      actions: <Widget>[
+        IconButton(
+          icon: Icon(Icons.add),
+          onPressed: () => _startAddNewTransaction(context),
+        )
+      ],
+    );
+
+    final transactionListWidget = Container(  // size.height take max height of the container widget * 0.6 for 70%
+        height: (mediaQuery.size.height -
+            appBar.preferredSize.height -
+            mediaQuery.padding.top) * 0.7, //padding is the default size flutter has for app info such as spcace arounf apps
+        child: TransactionList(_userTransactions, _deleteTransaction)
+    );
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Personal expanses'),
-        actions: <Widget>[
-          IconButton(
-            icon: Icon(Icons.add),
-            onPressed: () => _startAddNewTransaction(context),
-          )
-        ],
-      ),
+      appBar: appBar, // assign appBar variable
       body: SingleChildScrollView(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            Chart(_recentTransactions),
-            TransactionList(_userTransactions, _deleteTransaction),
+            if(isLandscape) Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+              Text('show chart'),
+              Switch(value: _showChart, onChanged: (value){
+                setState(() {
+                  _showChart = value;
+                });
+                print('I been switched');
+              })
+            ],),
+            if(!isLandscape)  Container( //inlist if statement dont use {}
+              height: (mediaQuery.size.height -
+              appBar.preferredSize.height -
+              MediaQuery.of(context).padding.top) *0.3,
+              child: Chart(_recentTransactions),
+            ),
+            if(!isLandscape) transactionListWidget,
+            if(isLandscape) _showChart ? Container(
+              height: (mediaQuery.size.height -
+                  appBar.preferredSize.height -
+                  MediaQuery.of(context).padding.top) * 0.7,
+                child: Chart(_recentTransactions)
+            )
+             :transactionListWidget
           ],
         ),
       ),
